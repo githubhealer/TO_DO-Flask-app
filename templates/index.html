@@ -136,46 +136,6 @@
         <button type="button" class="btn btn-danger ms-2" onclick="stopPomodoro()">Stop</button>
     </form>
     <p id="pomodoroDisplay" class="mt-3"></p>
-
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        {% for date, tasks in tasks_by_date.items() %}
-        <div class="col">
-            <div class="card bg-dark text-white h-100">
-                <div class="card-header text-info">
-                    <a href="{{ url_for('day_view', date=date) }}?slot=30" class="text-info text-decoration-none">{{ date }}</a>
-                </div>
-                <div class="card-body">
-                    {% for task in tasks %}
-                    <div class="agenda-task mb-2" id="task-{{ date }}-{{ loop.index0 }}">
-                        <span id="task-text-{{ date }}-{{ loop.index0 }}" {% if task.completed %} style="text-decoration: line-through" {% endif %}>
-                            {{ task.text }}
-                        </span>
-                        {% if not task.completed %}
-                            <div class="mt-2">
-                                <a class="btn btn-sm btn-outline-light" href="{{ url_for('complete_task', date=date, task_id=loop.index0) }}">✔</a>
-                                <button class="btn btn-sm btn-warning" onclick="showEditForm('{{ date }}', '{{ loop.index0 }}', '{{ task.text|escape }}')">✏️</button>
-                            </div>
-                        {% endif %}
-                        <div id="edit-form-{{ date }}-{{ loop.index0 }}" style="display: none;" class="mt-2">
-                            <form action="{{ url_for('edit_task', date=date, task_id=loop.index0) }}" method="post" class="d-flex gap-2">
-                                <input type="hidden" name="next" value="agenda">
-                                <input type="text" class="form-control" name="new_text" value="{{ task.text }}" required>
-                                <button type="submit" class="btn btn-success btn-sm">💾</button>
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="hideEditForm('{{ date }}', '{{ loop.index0 }}')">✖</button>
-                            </form>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-
-    <form action="{{ url_for('clear_all_tasks') }}" method="post" style="display:inline;">
-        <button type="submit" class="btn btn-danger mb-3 mt-4">Clear All Tasks</button>
-    </form>
-
     <script>
         let pomoInterval;
         let isWork = true;
@@ -236,6 +196,39 @@
             Notification.requestPermission();
         }
     </script>
+    <hr>
+    <hr>
+    {% set today = now().strftime('%Y-%m-%d') %}
+    <div class="card bg-dark text-white mb-4" style="border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); max-width:600px; margin:auto;">
+        <div class="card-header text-info" style="font-size:1.2rem;">
+            Today's Tasks - {{ today }}
+        </div>
+        <div class="card-body" style="background:#249292; border-radius: 0 0 20px 20px;">
+            {% if tasks_by_date.get(today) %}
+                {% for task in tasks_by_date[today] %}
+                <div class="agenda-task mb-3 d-flex align-items-center justify-content-between" style="background:#249292;">
+                    <span style="font-size:1.1rem;" {% if task.completed %} style="text-decoration: line-through" {% endif %}>{{ task.text }}</span>
+                    <div>
+                        {% if not task.completed %}
+                            <a class="btn btn-sm btn-outline-light" href="{{ url_for('complete_task', date=today, task_id=loop.index0) }}">✔</a>
+                            <button class="btn btn-sm btn-warning" onclick="showEditForm('{{ today }}', '{{ loop.index0 }}', '{{ task.text|escape }}')">✏️</button>
+                        {% endif %}
+                    </div>
+                    <div id="edit-form-{{ today }}-{{ loop.index0 }}" style="display: none;" class="mt-2">
+                        <form action="{{ url_for('edit_task', date=today, task_id=loop.index0) }}" method="post" class="d-flex gap-2">
+                            <input type="hidden" name="next" value="agenda">
+                            <input type="text" class="form-control" name="new_text" value="{{ task.text }}" required>
+                            <button type="submit" class="btn btn-success btn-sm">💾</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="hideEditForm('{{ today }}', '{{ loop.index0 }}')">✖</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center text-light">No tasks for today!</div>
+            {% endif %}
+        </div>
+    </div>
 </div>
 </body>
 </html>
