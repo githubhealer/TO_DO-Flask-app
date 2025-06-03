@@ -50,27 +50,33 @@
                 <td>{{ slot.start }} - {{ slot.end }}</td>
                 <td>
                     {% for task in tasks if task.time_slot == slot.start ~ '-' ~ slot.end %}
-                        <div class="agenda-task d-flex align-items-center justify-content-between" id="task-{{ date }}-{{ loop.index0 }}">
-                            <span id="task-text-{{ date }}-{{ loop.index0 }}" {% if task.completed %} style="text-decoration: line-through" {% endif %}>{{ task.text }}</span>
+                        {% set idx = task_indices[(task.time_slot, task.text)] %}
+                        <div class="agenda-task d-flex align-items-center justify-content-between" id="task-{{ date }}-{{ idx }}">
+                            <span id="task-text-{{ date }}-{{ idx }}" {% if task.completed %} style="text-decoration: line-through" {% endif %}>{{ task.text }}</span>
                             <div>
                                 {% if not task.completed %}
-                                    <a class="btn btn-sm btn-outline-light" href="{{ url_for('complete_task', date=date, task_id=loop.index0) }}" title="Mark as Complete">Complete</a>
-                                    <button class="btn btn-sm btn-warning" title="Edit Task" onclick="showEditForm('{{ date }}', '{{ loop.index0 }}', '{{ task.text|escape }}')">Edit</button>
+                                    <a class="btn btn-sm btn-outline-light" href="{{ url_for('complete_task', date=date, task_id=idx) }}" title="Mark as Complete">Complete</a>
+                                    <button class="btn btn-sm btn-warning" title="Edit Task" onclick="showEditForm('{{ date }}', '{{ idx }}', '{{ task.text|escape }}')">Edit</button>
                                 {% endif %}
+                                <form action="{{ url_for('delete_task', date=date, task_id=idx) }}" method="post" style="display:inline;">
+                                    <input type="hidden" name="next" value="{{ url_for('day_view', date=date) }}">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this task?');">Delete</button>
+                                </form>
                             </div>
-                        <div id="edit-form-{{ date }}-{{ loop.index0 }}" style="display: none; margin-top: 5px;">
-                            <form action="{{ url_for('edit_task', date=date, task_id=loop.index0) }}" method="post" class="d-inline">
-                                <input type="hidden" name="next" value="{{ url_for('day_view', date=date) }}">
-                                <input type="text" name="new_text" value="{{ task.text }}" required>
-                                <button type="submit" class="btn btn-sm btn-success">Save</button>
-                                <button type="button" class="btn btn-sm btn-secondary" onclick="hideEditForm('{{ date }}', '{{ loop.index0 }}')">Cancel</button>
-                            </form>
-                        </div>
+                            <div id="edit-form-{{ date }}-{{ idx }}" style="display: none; margin-top: 5px;">
+                                <form action="{{ url_for('edit_task', date=date, task_id=idx) }}" method="post" class="d-inline">
+                                    <input type="hidden" name="next" value="{{ url_for('day_view', date=date) }}">
+                                    <input type="text" name="new_text" value="{{ task.text }}" required>
+                                    <button type="submit" class="btn btn-sm btn-success">Save</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="hideEditForm('{{ date }}', '{{ idx }}')">Cancel</button>
+                                </form>
+                            </div>
                         </div>
                     {% endfor %}
                 </td>
                 <td>
                     {% for task in tasks if task.time_slot == slot.start ~ '-' ~ slot.end %}
+                        {% set idx = task_indices[(task.time_slot, task.text)] %}
                         {% if task.completed %}
                             <span class="badge bg-success">Completed</span>
                         {% endif %}
