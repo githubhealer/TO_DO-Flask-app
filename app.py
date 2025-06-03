@@ -36,7 +36,11 @@ def day_view(date):
         slots.append({'start': start.strftime("%H:%M"), 'end': slot_end.strftime("%H:%M")})
         start = slot_end
     tasks = tasks_by_date.get(date, [])
-    return render_template('day.html', date=date, slots=slots, tasks=tasks, slot_minutes=slot_minutes)
+    # Build a mapping from (time_slot, task.text) to index
+    task_indices = {}
+    for idx, task in enumerate(tasks):
+        task_indices[(task['time_slot'], task['text'])] = idx
+    return render_template('day.html', date=date, slots=slots, tasks=tasks, slot_minutes=slot_minutes, task_indices=task_indices)
 
 @app.route('/add_task', methods=['POST'])
 def add_task():
@@ -79,6 +83,19 @@ def edit_task(date, task_id):
     if date in tasks_by_date and 0 <= task_id < len(tasks_by_date[date]):
         tasks_by_date[date][task_id]['text'] = new_text
         save_tasks(tasks_by_date)
+    if next_page == 'agenda':
+        return redirect(url_for('index'))
+    else:
+        return redirect(url_for('day_view', date=date))
+
+@app.route('/delete_task/<date>/<int:task_id>', methods=['POST'])
+def delete_task(date, task_id):
+    tasks_by_date = load_tasks()
+    tasks = tasks_by_date.get(date, [])
+    if 0 <= task_id < len(tasks):
+        tasks.pop(task_id)
+        save_tasks(tasks_by_date)
+    next_page = request.form.get('next', 'day')
     if next_page == 'agenda':
         return redirect(url_for('index'))
     else:
