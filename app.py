@@ -1,5 +1,5 @@
 import json
-from flask import Flask, request, redirect, url_for, render_template
+from flask import Flask, request, redirect, url_for, render_template, jsonify
 from datetime import datetime, time, timedelta
 from flask_cors import CORS
 import os
@@ -8,6 +8,7 @@ app = Flask(__name__)
 CORS(app)
 
 TASKS_FILE = 'task.json'
+DAILY_COMMENTS_FILE = 'daily_comments.json'
 
 def load_tasks():
     if os.path.exists(TASKS_FILE):
@@ -19,14 +20,31 @@ def save_tasks(tasks):
     with open(TASKS_FILE, 'w') as f:
         json.dump(tasks, f)
 
+def load_daily_comments():
+    if os.path.exists(DAILY_COMMENTS_FILE):
+        with open(DAILY_COMMENTS_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_daily_comments(comments):
+    with open(DAILY_COMMENTS_FILE, 'w') as f:
+        json.dump(comments, f)
+
 @app.route('/')
 def index():
     tasks_by_date = load_tasks()
-    return render_template('index.html', tasks_by_date=tasks_by_date, now=datetime.now)
+    daily_comments = load_daily_comments()  # <-- Add this line
+    return render_template(
+        'index.html',
+        tasks_by_date=tasks_by_date,
+        daily_comments=daily_comments,      # <-- And this line
+        now=datetime.now
+    )
 
 @app.route('/day/<date>')
 def day_view(date):
     tasks_by_date = load_tasks()
+    daily_comments = load_daily_comments()
     slot_minutes = int(request.args.get('slot', 30))
     slots = []
     start = datetime.strptime(date + " 04:00", "%Y-%m-%d %H:%M")
@@ -40,7 +58,16 @@ def day_view(date):
     task_indices = {}
     for idx, task in enumerate(tasks):
         task_indices[(task['time_slot'], task['text'])] = idx
-    return render_template('day.html', date=date, slots=slots, tasks=tasks, slot_minutes=slot_minutes, task_indices=task_indices)
+    return render_template(
+        'day.html',
+        date=date,
+        slots=slots,
+        tasks=tasks,
+        slot_minutes=slot_minutes,
+        task_indices=task_indices,
+        daily_comments=daily_comments,
+        now=datetime.now  # <-- add this
+    )
 
 @app.route('/add_task', methods=['POST'])
 def add_task():
@@ -100,6 +127,43 @@ def delete_task(date, task_id):
         return redirect(url_for('index'))
     else:
         return redirect(url_for('day_view', date=date))
+
+@app.route('/save_daily_comment/<date>', methods=['POST'])
+def save_daily_comment(date):
+    comment = request.form.get('daily_comment', '')
+    daily_comments = load_daily_comments()
+    daily_comments[date] = comment
+    save_daily_comments(daily_comments)
+    return redirect(url_for('day_view', date=date))
+
+@app.route('/comments/<date>')
+def comment_by_date(date):
+    daily_comments = load_daily_comments()
+    comment = daily_comments.get(date)
+    return render_template('comment_by_date.html', date=date, comment=comment)
+
+@app.route('/move_task', methods=['POST'])
+def move_task():
+    data = request.get_json()
+    task_id = int(data['task_id'])  # This is the index in the day's task list
+    new_time_slot = data['new_time_slot']
+    date = data['date']
+
+    # Load tasks
+    with open('task.json', 'r') as f:
+        tasks = json.load(f)
+
+    # Update the time_slot for the correct task
+    if date in tasks and 0 <= task_id < len(tasks[date]):
+        tasks[date][task_id]['time_slot'] = new_time_slot
+
+        # Save back to file
+        with open('task.json', 'w') as f:
+            json.dump(tasks, f)
+
+        return jsonify(success=True)
+    else:
+        return jsonify(success=False, error="Task not found"), 404
 
 if __name__ == '__main__':
     app.run(debug=True)
