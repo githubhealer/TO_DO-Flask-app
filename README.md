@@ -1,57 +1,115 @@
-# TO_DO-Flask-app
-# TIMETABLE Web App
+# TO_DO Flask App
 
-A simple, modern web-based agenda and Pomodoro timer built with Flask and Bootstrap.  
-Features a calendar view, daily task slots, and persistent storage in `task.json`.
+A simple, modern, and interactive daily timetable and to-do manager built with Flask and Bootstrap.  
+Features include daily task scheduling, Pomodoro timer, drag-and-drop task rescheduling, daily comments, and more.
 
 ---
 
 ## Features
 
-- **Agenda View**: See all your tasks grouped by day.
-- **Calendar Popup**: Click "Show Calendar" to view tasks on a monthly calendar (FullCalendar).
-- **Daily View**: Click a date to see and manage tasks in 30-minute slots (like Outlook).
-- **Add/Edit/Complete Tasks**: Inline editing and completion for each task.
-- **Pomodoro Timer**: Built-in timer for productivity.
-- **Persistent Storage**: All tasks are saved in `task.json`.
-- **Responsive Design**: Works on desktop and mobile.
+- **Daily Task Scheduling:**  
+  Add, edit, complete, and delete tasks for each day, organized by time slots.
+
+- **Drag-and-Drop Task Moving:**  
+  Move tasks between time slots by dragging and dropping.
+
+- **Pomodoro Timer:**  
+  Built-in Pomodoro timer with customizable work/break durations and notifications.
+
+- **Daily Comments:**  
+  Add a comment or note for each day.
+
+- **Responsive Design:**  
+  Works well on desktop and mobile.
+
+- **Persistent Storage:**  
+  Tasks and comments are stored in a JSON file (`task.json`).
 
 ---
 
 ## Getting Started
 
-### 1. Install Requirements
+### 1. Clone the Repository
 
 ```bash
-pip install -r requirements.txt
+git clone https://github.com/yourusername/TO_DO-Flask-app.git
+cd TO_DO-Flask-app
 ```
 
-### 2. Run the App
+### 2. Install Dependencies
+
+```bash
+pip install flask
+```
+
+### 3. Run the App
 
 ```bash
 python app.py
 ```
 
-### 3. Open in Browser
+Or, if you have a `.bat` file for Windows:
 
-Go to [http://127.0.0.1:5000](http://127.0.0.1:5000)
+```bash
+start.bat
+```
+
+### 4. Open in Browser
+
+Visit [http://127.0.0.1:5000](http://127.0.0.1:5000) in your web browser.
 
 ---
 
 ## File Structure
 
-- `app.py` — Flask backend
-- `templates/index.html` — Main agenda and calendar view
-- `templates/day.html` — Per-day slot/task view
-- `task.json` — Persistent storage for tasks
+```
+TO_DO-Flask-app/
+│
+├── app.py                # Main Flask application
+├── task.json             # Task and comment data storage
+├── templates/
+│   ├── index.html        # Main agenda/month view
+│   └── day.html          # Day view with tasks and comments
+└── static/               # (Optional) Static files (CSS, JS, images)
+```
+
+---
+
+## Usage
+
+- **Add Task:**  
+  Select a time slot, enter a task, and click "Add Task".
+
+- **Edit/Delete/Complete Task:**  
+  Use the buttons next to each task.
+
+- **Move Task:**  
+  Drag a task and drop it into another time slot.
+
+- **Pomodoro Timer:**  
+  Set work/break durations and use the timer for productivity.
+
+- **Daily Comments:**  
+  Add a note for each day (editable only for today).
 
 ---
 
 ## Customization
 
-- **Slot Duration**: Change the `slot` query parameter for different time slot lengths.
-- **Styling**: Edit the CSS in `index.html` for your own look.
-- **Notifications**: Uses browser notifications for Pomodoro timer.
+- **Time Slots:**  
+  Edit the slot generation logic in `app.py` if you want different intervals.
+
+- **Styling:**  
+  Modify the CSS in the `<style>` sections of the HTML templates.
+
+- **Notifications:**  
+  The Pomodoro timer and task reminders use browser notifications (requires permission).
+
+---
+
+## License
+
+MIT License
 
 ---
 
@@ -59,10 +117,4 @@ Go to [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
 - [Flask](https://flask.palletsprojects.com/)
 - [Bootstrap](https://getbootstrap.com/)
-- [FullCalendar](https://fullcalendar.io/)
-
----
-
-## License
-
-MIT License
+- [FullCalendar](https://fullcalendar.io/) (if used)
