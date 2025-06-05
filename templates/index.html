@@ -38,11 +38,59 @@
             background-color: #fff;
             color: #000;
         }
+        #liveClockBox {
+            position: absolute;
+            top: 10px;
+            right: 32px;
+            z-index: 9999;
+            background: rgba(30, 30, 47, 0.7);
+            box-shadow: 0 4px 24px rgba(0, 255, 38, 0.25);
+            border-radius: 16px;
+            padding: 10px 28px;
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            min-width: 180px;
+        }
+        #liveClock {
+            font-size: 2rem;
+            font-family: 'Inter', 'Consolas', monospace;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #fff;
+            text-shadow: 0 2px 8px rgba(29, 223, 19, 0.667);
+            user-select: none;
+        }
+        @media (max-width: 600px) {
+            #liveClockBox {
+                top: 8px;
+                right: 8px;
+                padding: 6px 10px;
+                min-width: 120px;
+            }
+            #liveClock {
+                font-size: 1.1rem;
+            }
+        }
     </style>
 </head>
 <body>
+<div id="liveClockBox">
+    <span id="liveClock">--:--:--.---</span>
+</div>
+<script>
+    function updateClock() {
+        const now = new Date();
+        const h = 24-now.getHours().toString().padStart(2, '0');
+        const m = 60-now.getMinutes().toString().padStart(2, '0');
+        const s = 60-now.getSeconds().toString().padStart(2, '0');
+        document.getElementById('liveClock').textContent = `${h} hrs ${m} mins ${s} secs remaining`;
+    }
+    setInterval(updateClock, 25);
+    updateClock();
+</script>
 <div class="container py-4">
-    <h1 class="mb-4 text-center">Agenda View</h1>
 
     <!-- Show Calendar Button -->
     <button class="btn btn-info mb-4" onclick="showCalendarModal()">Show Calendar</button>
@@ -113,7 +161,7 @@
                     value="{{ now().strftime('%Y-%m-%d') }}">
             </div>
             <div class="col-md-6">
-                <button type="submit" class="btn btn-primary w-100">Go to Task Page</button>
+                <button type="submit" class="btn btn-primary w-100">Go to Task Page or previous day's comments</button>
             </div>
         </div>
     </form>
@@ -126,78 +174,90 @@
         }
     </script>
     <hr>
-    <h3>Pomodoro Timer</h3>
-    <form id="pomodoroForm" onsubmit="startPomodoro(event)">
-        <label>Work (minutes):</label>
-        <input type="number" id="workDuration" value="25" min="0.05" step="0.05" required>
-        <label class="ms-2">Break (minutes):</label>
-        <input type="number" id="breakDuration" min="0.1" value="5" step="0.1" required>
-        <button type="submit" class="btn btn-primary ms-2">Start</button>
-        <button type="button" class="btn btn-danger ms-2" onclick="stopPomodoro()">Stop</button>
-    </form>
-    <p id="pomodoroDisplay" class="mt-3"></p>
+    <div class="card bg-dark text-white mb-4" style="max-width:400px;margin:auto;box-shadow:0 4px 16px #000a;">
+      <div class="card-header text-center" style="font-size:1.3rem;letter-spacing:1px;">
+        <span id="pomoSessionLabel">Pomodoro Timer</span>
+      </div>
+      <div class="card-body d-flex flex-column align-items-center" style="background:#222;border-radius:0 0 20px 20px;">
+        <div id="pomoTimer" style="font-size:2.8rem;font-family:'Consolas',monospace;font-weight:700;letter-spacing:2px;margin:18px 0 10px 0;text-shadow:0 2px 8px #1ddf13aa;">
+          25:00
+        </div>
+        <div class="progress w-100 mb-3" style="height:12px;background:#333;">
+          <div id="pomoProgress" class="progress-bar bg-success" role="progressbar" style="width:0%;transition:width 0.3s;"></div>
+        </div>
+        <form id="pomodoroForm" class="d-flex gap-2 flex-wrap justify-content-center" onsubmit="startPomodoro(event)">
+          <input type="number" id="workDuration" value="25" min="1" step="1" required class="form-control form-control-sm" style="width:70px;" title="Work (minutes)">
+          <span class="align-self-center">Work</span>
+          <input type="number" id="breakDuration" min="1" value="5" step="1" required class="form-control form-control-sm" style="width:70px;" title="Break (minutes)">
+          <span class="align-self-center">Break</span>
+          <button type="submit" class="btn btn-primary btn-sm">Start</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="stopPomodoro()">Stop</button>
+        </form>
+        <div id="pomoStatus" class="mt-2" style="font-size:1rem;"></div>
+      </div>
+    </div>
     <script>
-        let pomoInterval;
-        let isWork = true;
-        let secondsLeft = 0;
-        function showEditForm(date, taskId, text) {
-            document.getElementById(`edit-form-${date}-${taskId}`).style.display = 'flex';
-            document.getElementById(`task-text-${date}-${taskId}`).style.display = 'none';
-        }
-        function hideEditForm(date, taskId) {
-            document.getElementById(`edit-form-${date}-${taskId}`).style.display = 'none';
-            document.getElementById(`task-text-${date}-${taskId}`).style.display = 'inline';
-        }
-        function startPomodoro(event) {
-            event.preventDefault();
-            stopPomodoro();
-            isWork = true;
-            let workMinutes = parseFloat(document.getElementById('workDuration').value);
-            let breakMinutes = parseFloat(document.getElementById('breakDuration').value);
-            secondsLeft = Math.round(workMinutes * 60);
+    let pomoInterval;
+    let isWork = true;
+    let secondsLeft = 0;
+    let totalSeconds = 0;
+    function startPomodoro(event) {
+        event.preventDefault();
+        stopPomodoro();
+        isWork = true;
+        let workMinutes = parseInt(document.getElementById('workDuration').value, 10);
+        let breakMinutes = parseInt(document.getElementById('breakDuration').value, 10);
+        secondsLeft = workMinutes * 60;
+        totalSeconds = secondsLeft;
+        updatePomodoroDisplay();
+        document.getElementById('pomoSessionLabel').textContent = "Work Session";
+        pomoInterval = setInterval(function () {
+            secondsLeft--;
             updatePomodoroDisplay();
-            pomoInterval = setInterval(function () {
-                secondsLeft--;
-                if (secondsLeft <= 0) {
-                    isWork = !isWork;
-                    const msg = isWork ? "Work Time!" : "Break Time!";
-                    showNotification(msg);
-                    secondsLeft = Math.round((isWork ? workMinutes : breakMinutes) * 60);
+            if (secondsLeft <= 0) {
+                isWork = !isWork;
+                const msg = isWork ? "Work Time!" : "Break Time!";
+                showNotification(msg);
+                secondsLeft = (isWork ? workMinutes : breakMinutes) * 60;
+                totalSeconds = secondsLeft;
+                document.getElementById('pomoSessionLabel').textContent = isWork ? "Work Session" : "Break Session";
+            }
+        }, 1000);
+    }
+    function updatePomodoroDisplay() {
+        let m = Math.floor(secondsLeft / 60);
+        let s = secondsLeft % 60;
+        let session = isWork ? "Work" : "Break";
+        document.getElementById('pomoTimer').textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        document.getElementById('pomoSessionLabel').textContent = session + " Session";
+        let percent = totalSeconds ? 100 * (1 - secondsLeft / totalSeconds) : 0;
+        document.getElementById('pomoProgress').style.width = percent + "%";
+        document.getElementById('pomoProgress').className = "progress-bar " + (isWork ? "bg-success" : "bg-info");
+        document.getElementById('pomoStatus').textContent = session === "Work" ? "Stay focused!" : "Take a break!";
+    }
+    function stopPomodoro() {
+        clearInterval(pomoInterval);
+        document.getElementById('pomoTimer').textContent = "00:00";
+        document.getElementById('pomoSessionLabel').textContent = "Pomodoro Timer";
+        document.getElementById('pomoProgress').style.width = "0%";
+        document.getElementById('pomoStatus').textContent = "";
+    }
+    function showNotification(msg) {
+        if (!("Notification" in window)) return;
+        if (Notification.permission === "granted") {
+            new Notification("Timer Finished!", { body: msg });
+        } else if (Notification.permission !== "denied") {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    new Notification("Timer Finished!", { body: msg });
                 }
-                updatePomodoroDisplay();
-            }, 1000);
+            });
         }
-        function updatePomodoroDisplay() {
-            let m = Math.floor(secondsLeft / 60);
-            let s = secondsLeft % 60;
-            let session = isWork ? "Work" : "Break";
-            document.getElementById('pomodoroDisplay').textContent = `${session} Session: ${m}:${s.toString().padStart(2, '0')}`;
-        }
-        function stopPomodoro() {
-            clearInterval(pomoInterval);
-            document.getElementById('pomodoroDisplay').textContent = "Stopped";
-        }
-        function showNotification(msg) {
-            if (!("Notification" in window)) {
-                console.log("This browser does not support desktop notifications.");
-                return;
-            }
-            if (Notification.permission === "granted") {
-                new Notification("Timer Finished!", { body: msg });
-            } else if (Notification.permission !== "denied") {
-                Notification.requestPermission().then(permission => {
-                    if (permission === "granted") {
-                        new Notification("Timer Finished!", { body: msg });
-                    }
-                });
-            }
-        }
-        if (Notification.permission !== "granted") {
-            Notification.requestPermission();
-        }
+    }
+    if (Notification.permission !== "granted") {
+        Notification.requestPermission();
+    }
     </script>
-    <hr>
-    <hr>
     {% set today = now().strftime('%Y-%m-%d') %}
     <div class="card bg-dark text-white mb-4" style="border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); max-width:600px; margin:auto;">
         <div class="card-header text-info" style="font-size:1.2rem;">
