@@ -33,11 +33,11 @@ def save_daily_comments(comments):
 @app.route('/')
 def index():
     tasks_by_date = load_tasks()
-    daily_comments = load_daily_comments()  # <-- Add this line
+    daily_comments = load_daily_comments()
     return render_template(
         'index.html',
         tasks_by_date=tasks_by_date,
-        daily_comments=daily_comments,      # <-- And this line
+        daily_comments=daily_comments,
         now=datetime.now
     )
 
@@ -88,6 +88,17 @@ def complete_task(date, task_id):
         tasks[task_id]['completed'] = True
         save_tasks(tasks_by_date)
     return redirect(url_for('day_view', date=date))
+
+@app.route('/undo_complete_task/<date>/<int:task_id>', methods=['POST'])
+def undo_complete_task(date, task_id):
+    # Load tasks from your storage (e.g., task.json)
+    with open('task.json', 'r') as f:
+        tasks = json.load(f)
+    if date in tasks and 0 <= task_id < len(tasks[date]):
+        tasks[date][task_id]['completed'] = False
+        with open('task.json', 'w') as f:
+            json.dump(tasks, f)
+    return redirect(request.referrer or url_for('day_view', date=date))
 
 @app.route('/clear_tasks/<date>', methods=['POST'])
 def clear_tasks(date):
