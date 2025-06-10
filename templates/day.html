@@ -101,6 +101,9 @@
                         {% set idx = task_indices[(task.time_slot, task.text)] %}
                         {% if task.completed %}
                             <span class="badge bg-success">Completed</span>
+                            <form action="{{ url_for('undo_complete_task', date=date, task_id=idx) }}" method="post" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-warning ms-2">Undo</button>
+                            </form>
                         {% endif %}
                     {% endfor %}
                 </td>
@@ -113,6 +116,7 @@
     </form>
     <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3">Back to Agenda</a>
 </div>
+<audio id="alarmAudio" src="{{ url_for('static', filename='alarm.wav') }}" preload="auto"></audio>
 <script>
     function onDropTask(event, newTimeSlot) {
         event.preventDefault();
@@ -142,6 +146,62 @@
         document.getElementById(`edit-form-${date}-${taskId}`).style.display = 'none';
         document.getElementById(`task-text-${date}-${taskId}`).style.display = 'inline';
     }
+</script>
+<script>
+// Helper to parse "HH:MM" to a Date object for today
+function getTodayTime(hourMin) {
+    const [h, m] = hourMin.split(':').map(Number);
+    const now = new Date();
+    now.setHours(h, m, 0, 0);
+    return now;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const todayStr = "{{ now().strftime('%Y-%m-%d') }}";
+    const pageDate = "{{ date }}";
+    if (todayStr !== pageDate) return; // Only run for today
+
+    const tasks = [
+        {% for task in tasks %}
+            {
+                text: {{ task.text|tojson }},
+                time_slot: "{{ task.time_slot }}",
+                completed: {{ 'true' if task.completed else 'false' }}
+            },
+        {% endfor %}
+    ];
+
+    tasks.forEach(task => {
+        if (task.completed) return;
+        const [start, ] = task.time_slot.split('-');
+        const notifyTime = getTodayTime(start.trim());
+        notifyTime.setMinutes(notifyTime.getMinutes() - 5);
+
+        const now = new Date();
+        const msUntilNotify = notifyTime - now;
+        if (msUntilNotify > 0) {
+            setTimeout(() => {
+                // Play alarm sound
+                var audio = document.getElementById('alarmAudio');
+                if (audio) {
+                    audio.currentTime = 0;
+                    audio.play();
+                }
+                // Also show browser notification
+                if ("Notification" in window && Notification.permission === "granted") {
+                    new Notification("Upcoming Task", {
+                        body: `Task: ${task.text}\nStarts at: ${start.trim()}`
+                    });
+                }
+            }, msUntilNotify);
+        }
+    });
+
+    // Request notification permission if not already granted
+    if ("Notification" in window && Notification.permission !== "granted") {
+        Notification.requestPermission();
+    }
+});
 </script>
 </body>
 </html>
