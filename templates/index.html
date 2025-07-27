@@ -84,10 +84,15 @@
 <script>
     function updateClock() {
         const now = new Date();
-        const h = 24-now.getHours().toString().padStart(2, '0');
-        const m = 60-now.getMinutes().toString().padStart(2, '0');
-        const s = 60-now.getSeconds().toString().padStart(2, '0');
-        document.getElementById('liveClock').textContent = `${h} hrs ${m} mins ${s} secs remaining`;
+        const endOfDay = new Date(now);
+        endOfDay.setHours(23, 59, 59, 999);
+        let diff = Math.max(0, endOfDay - now);
+        let hours = Math.floor(diff / (1000 * 60 * 60));
+        diff -= hours * 1000 * 60 * 60;
+        let minutes = Math.floor(diff / (1000 * 60));
+        diff -= minutes * 1000 * 60;
+        let seconds = Math.floor(diff / 1000);
+        document.getElementById('liveClock').textContent = `${hours} hrs ${minutes} mins ${seconds} secs remaining`;
     }
     setInterval(updateClock, 25);
     updateClock();
